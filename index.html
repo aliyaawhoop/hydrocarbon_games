@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petualangan Hidrokarbon</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        #intro, #game-container {
+            background-color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1, h2 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        
+        .container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        
+        #molecule-builder {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        #canvas-container {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #3498db;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .control-panel {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+        
+        .element {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .carbon {
+            background-color: #555;
+            color: white;
+        }
+        
+        .hydrogen {
+            background-color: #89CFF0;
+            color: #333;
+        }
+        
+        .bond {
+            background-color: #e74c3c;
+            color: white;
+        }
+        
+        #info-panel {
+            width: 100%;
+            min-height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            background-color: #f8f9fa;
+        }
+        
+        #challenge-info {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #eaf2f8;
+            border-radius: 5px;
+        }
+        
+        #score-display {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+        
+        .level-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .molecule-display {
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .molecule-image {
+            width: 200px;
+            height: auto;
+            margin: 0 auto;
+            display: block;
+        }
+        
+        #message-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            z-index: 100;
+            display: none;
+            text-align: center;
+            max-width: 80%;
+        }
+        
+        #message-box h3 {
+            margin-top: 5px;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .atom {
+            position: absolute;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .bond-line {
+            position: absolute;
+            background-color: #333;
+            transform-origin: 0 50%;
+            height: 5px;
+            border-radius: 2px;
+        }
+        
+        .selected {
+            box-shadow: 0 0 0 3px yellow;
+        }
+        
+        #reset-btn {
+            background-color: #e74c3c;
+            margin-right: 10px;
+        }
+        
+        #reset-btn:hover {
+            background-color: #c0392b;
+        }
+        
+        #check-btn {
+            background-color: #2ecc71;
+        }
+        
+        #check-btn:hover {
+            background-color: #27ae60;
+        }
+        
+        #next-level-btn {
+            background-color: #f39c12;
+            display: none;
+        }
+        
+        #next-level-btn:hover {
+            background-color: #d35400;
+        }
+        
+        .interactive-btn {
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Petualangan Hidrokarbon</h1>
+    
+    <div id="intro">
+        <h2>Apa itu Hidrokarbon?</h2>
+        <p>Hidrokarbon adalah senyawa organik yang hanya terdiri dari atom <strong>karbon (C)</strong> dan <strong>hidrogen (H)</strong>. Senyawa ini merupakan dasar dari kimia organik dan ditemukan dalam berbagai material seperti minyak bumi, gas alam, dan bahan bakar fosil.</p>
+        
+        <p>Beberapa jenis hidrokarbon:</p>
+        <ul>
+            <li><strong>Alkana</strong>: Hidrokarbon jenuh dengan ikatan tunggal (contoh: metana, etana)</li>
+            <li><strong>Alkena</strong>: Hidrokarbon dengan ikatan rangkap dua (contoh: etena, propena)</li>
+            <li><strong>Alkuna</strong>: Hidrokarbon dengan ikatan rangkap tiga (contoh: etuna, propuna)</li>
+            <li><strong>Siklik</strong>: Hidrokarbon berbentuk cincin (contoh: sikloheksana)</li>
+        </ul>
+        
+        <p>Dalam permainan ini, kamu akan mempelajari struktur molekul hidrokarbon sederhana sambil membangun molekulnya secara interaktif!</p>
+        
+        <div style="text-align: center;">
+            <button id="start-game">Mulai Permainan</button>
+        </div>
+    </div>
+    
+    <div id="game-container" style="display: none;">
+        <div id="challenge-info">
+            Level 1: Buatlah molekul Metana (CH₄)
+        </div>
+        
+        <div id="score-display">Skor: 0</div>
+        
+        <div class="container">
+            <div id="molecule-builder">
+                <h3>Bangun Molekul Hidrokarbon</h3>
+                <div id="canvas-container">
+                    <canvas id="game-canvas"></canvas>
+                </div>
+                
+                <div class="control-panel">
+                    <div class="element carbon">C</div>
+                    <div class="element hydrogen">H</div>
+                    <div class="element bond">Ikat</div>
+                    <button id="reset-btn" class="interactive-btn">Reset</button>
+                    <button id="check-btn" class="interactive-btn">Periksa</button>
+                    <button id="next-level-btn" class="interactive-btn">Level Berikutnya</button>
+                </div>
+                
+                <div id="info-panel">
+                    <p>Petunjuk: Klik tombol C atau H untuk menambahkan atom, lalu gunakan tombol Ikat untuk membuat ikatan antar atom.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="message-box">
+        <h3>Pesan</h3>
+        <p id="message-content"></p>
+        <button id="message-ok">OK</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Variabel untuk mengelola permainan
+            let score = 0;
+            let currentLevel = 1;
+            let selectedElement = null;
+            let selectedAtom = null;
+            let molecules = [];
+            let atoms = [];
+            let bonds = [];
+            
+            // Level dan tantangan
+            const levels = [
+                { 
+                    name: "Metana (CH₄)", 
+                    formula: "CH4", 
+                    description: "Buatlah molekul Metana (CH₄)",
+                    structure: { C: 1, H: 4, bonds: 4 },
+                    validation: function(atoms, bonds) {
+                        // Cek jumlah atom C dan H
+                        const carbonCount = atoms.filter(a => a.type === 'C').length;
+                        const hydrogenCount = atoms.filter(a => a.type === 'H').length;
+                        
+                        // Cek jumlah ikatan
+                        if (carbonCount !== 1 || hydrogenCount !== 4 || bonds.length !== 4) return false;
+                        
+                        // Cek apakah atom C terhubung dengan 4 atom H
+                        const carbonAtom = atoms.find(a => a.type === 'C');
+                        if (!carbonAtom) return false;
+                        
+                        const carbonBonds = bonds.filter(b => 
+                            b.from === atoms.indexOf(carbonAtom) || b.to === atoms.indexOf(carbonAtom)
+                        );
+                        
+                        if (carbonBonds.length !== 4) return false;
+                        
+                        // Semua kondisi terpenuhi
+                        return true;
+                    }
+                },
+                { 
+                    name: "Etana (C₂H₆)", 
+                    formula: "C2H6", 
+                    description: "Buatlah molekul Etana (C₂H₆)",
+                    structure: { C: 2, H: 6, bonds: 7 },
+                    validation: function(atoms, bonds) {
+                        // Cek jumlah atom C dan H
+                        const carbonCount = atoms.filter(a => a.type === 'C').length;
+                        const hydrogenCount = atoms.filter(a => a.type === 'H').length;
+                        
+                        // Cek jumlah ikatan total (C-C + C-H)
+                        if (carbonCount !== 2 || hydrogenCount !== 6 || bonds.length !== 7) return false;
+                        
+                        // Cek apakah ada ikatan C-C
+                        const carbonAtoms = atoms.filter(a => a.type === 'C');
+                        if (carbonAtoms.length !== 2) return false;
+                        
+                        const carbonCarbonBond = bonds.find(b => 
+                            (atoms[b.from].type === 'C' && atoms[b.to].type === 'C')
+                        );
+                        
+                        if (!carbonCarbonBond) return false;
+                        
+                        // Cek apakah setiap atom C terhubung dengan 3 H dan 1 C
+                        for (let i = 0; i < carbonAtoms.length; i++) {
+                            const carbonIndex = atoms.indexOf(carbonAtoms[i]);
+                            const carbonBonds = bonds.filter(b => b.from === carbonIndex || b.to === carbonIndex);
+                            
+                            if (carbonBonds.length !== 4) return false;
+                            
+                            const hydrogenBonds = carbonBonds.filter(b => 
+                                (b.from === carbonIndex && atoms[b.to].type === 'H') || 
+                                (b.to === carbonIndex && atoms[b.from].type === 'H')
+                            );
+                            
+                            if (hydrogenBonds.length !== 3) return false;
+                        }
+                        
+                        // Semua kondisi terpenuhi
+                        return true;
+                    }
+                },
+                { 
+                    name: "Propana (C₃H₈)", 
+                    formula: "C3H8", 
+                    description: "Buatlah molekul Propana (C₃H₈)",
+                    structure: { C: 3, H: 8, bonds: 10 },
+                    validation: function(atoms, bonds) {
+                        // Cek jumlah atom C dan H
+                        const carbonCount = atoms.filter(a => a.type === 'C').length;
+                        const hydrogenCount = atoms.filter(a => a.type === 'H').length;
+                        
+                        if (carbonCount !== 3 || hydrogenCount !== 8 || bonds.length !== 10) return false;
+                        
+                        // Cek struktur C-C-C
+                        const carbonAtoms = atoms.filter(a => a.type === 'C');
+                        if (carbonAtoms.length !== 3) return false;
+                        
+                        // Verifikasi bahwa ada rantai C-C-C
+                        let chainFound = false;
+                        for (let i = 0; i < carbonAtoms.length; i++) {
+                            for (let j = 0; j < carbonAtoms.length; j++) {
+                                if (i === j) continue;
+                                for (let k = 0; k < carbonAtoms.length; k++) {
+                                    if (i === k || j === k) continue;
+                                    
+                                    const iIndex = atoms.indexOf(carbonAtoms[i]);
+                                    const jIndex = atoms.indexOf(carbonAtoms[j]);
+                                    const kIndex = atoms.indexOf(carbonAtoms[k]);
+                                    
+                                    // Cek apakah i-j dan j-k terhubung
+                                    const ijBond = bonds.find(b => 
+                                        (b.from === iIndex && b.to === jIndex) || 
+                                        (b.from === jIndex && b.to === iIndex)
+                                    );
+                                    
+                                    const jkBond = bonds.find(b => 
+                                        (b.from === jIndex && b.to === kIndex) || 
+                                        (b.from === kIndex && b.to === jIndex)
+                                    );
+                                    
+                                    // Pastikan tidak ada ikatan i-k langsung (harus rantai)
+                                    const ikBond = bonds.find(b => 
+                                        (b.from === iIndex && b.to === kIndex) || 
+                                        (b.from === kIndex && b.to === iIndex)
+                                    );
+                                    
+                                    if (ijBond && jkBond && !ikBond) {
+                                        chainFound = true;
+                                        break;
+                                    }
+                                }
+                                if (chainFound) break;
+                            }
+                            if (chainFound) break;
+                        }
+                        
+                        if (!chainFound) return false;
+                        
+                        // Semua kondisi terpenuhi
+                        return true;
+                    }
+                },
+                { 
+                    name: "Etena (C₂H₄)", 
+                    formula: "C2H4", 
+                    description: "Buatlah molekul Etena (C₂H₄) dengan ikatan rangkap C=C",
+                    structure: { C: 2, H: 4, bonds: 6 },
+                    validation: function(atoms, bonds) {
+                        // Cek jumlah atom C dan H
+                        const carbonCount = atoms.filter(a => a.type === 'C').length;
+                        const hydrogenCount = atoms.filter(a => a.type === 'H').length;
+                        
+                        if (carbonCount !== 2 || hydrogenCount !== 4) return false;
+                        
+                        // Dapatkan kedua atom C
+                        const carbonAtoms = atoms.filter(a => a.type === 'C');
+                        if (carbonAtoms.length !== 2) return false;
+                        
+                        const c1Index = atoms.indexOf(carbonAtoms[0]);
+                        const c2Index = atoms.indexOf(carbonAtoms[1]);
+                        
+                        // Cek ikatan antara dua atom C
+                        // Dalam game ini kita simulasikan ikatan rangkap dengan dua ikatan terpisah
+                        const ccBonds = bonds.filter(b => 
+                            (b.from === c1Index && b.to === c2Index) || 
+                            (b.from === c2Index && b.to === c1Index)
+                        );
+                        
+                        if (ccBonds.length !== 2) return false;
+                        
+                        // Setiap atom C harus terhubung dengan 2 atom H
+                        for (let i = 0; i < carbonAtoms.length; i++) {
+                            const cIndex = atoms.indexOf(carbonAtoms[i]);
+                            const hydrogenBonds = bonds.filter(b => 
+                                (b.from === cIndex && atoms[b.to].type === 'H') || 
+                                (b.to === cIndex && atoms[b.from].type === 'H')
+                            );
+                            
+                            if (hydrogenBonds.length !== 2) return false;
+                        }
+                        
+                        // Semua kondisi terpenuhi
+                        return true;
+                    }
+                }
+            ];
+            
+            // Referensi elemen DOM
+            const startGameBtn = document.getElementById('start-game');
+            const gameContainer = document.getElementById('game-container');
+            const introContainer = document.getElementById('intro');
+            const challengeInfo = document.getElementById('challenge-info');
+            const scoreDisplay = document.getElementById('score-display');
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+            const carbonBtn = document.querySelector('.carbon');
+            const hydrogenBtn = document.querySelector('.hydrogen');
+            const bondBtn = document.querySelector('.element.bond');
+            const resetBtn = document.getElementById('reset-btn');
+            const checkBtn = document.getElementById('check-btn');
+            const nextLevelBtn = document.getElementById('next-level-btn');
+            const messageBox = document.getElementById('message-box');
+            const messageContent = document.getElementById('message-content');
+            const messageOkBtn = document.getElementById('message-ok');
+            
+            // Mengatur ukuran canvas
+            function resizeCanvas() {
+                const container = document.getElementById('canvas-container');
+                canvas.width = container.clientWidth;
+                canvas.height = container.clientHeight;
+                redrawCanvas();
+            }
+            
+            // Fungsi untuk memulai permainan
+            function startGame() {
+                introContainer.style.display = 'none';
+                gameContainer.style.display = 'block';
+                resizeCanvas();
+                loadLevel(currentLevel);
+            }
+            
+            // Fungsi untuk memuat level
+            function loadLevel(level) {
+                if (level > levels.length) {
+                    showMessage('Selamat! Kamu telah menyelesaikan semua level!', function() {
+                        // Reset game atau tampilkan skor akhir
+                        introContainer.style.display = 'block';
+                        gameContainer.style.display = 'none';
+                        currentLevel = 1;
+                        score = 0;
+                        scoreDisplay.textContent = 'Skor: ' + score;
+                    });
+                    return;
+                }
+                
+                resetMolecule();
+                challengeInfo.textContent = `Level ${level}: ${levels[level-1].description}`;
+                selectedElement = null;
+                selectedAtom = null;
+                nextLevelBtn.style.display = 'none';
+            }
+            
+            // Fungsi untuk menampilkan pesan
+            function showMessage(message, callback) {
+                messageContent.textContent = message;
+                messageBox.style.display = 'block';
+                messageBox.classList.add('fade-in');
+                
+                messageOkBtn.onclick = function() {
+                    messageBox.style.display = 'none';
+                    if (callback) callback();
+                };
+            }
+            
+            // Fungsi untuk menambahkan atom pada molekul
+            function addAtom(type, x, y) {
+                const atom = {
+                    type: type,
+                    x: x,
+                    y: y,
+                    radius: type === 'C' ? 20 : 15,
+                    color: type === 'C' ? '#555' : '#89CFF0'
+                };
+                
+                atoms.push(atom);
+                redrawCanvas();
+                return atoms.length - 1; // Return index of added atom
+            }
+            
+            // Fungsi untuk menambahkan ikatan antar atom
+            function addBond(fromIndex, toIndex) {
+                // Periksa apakah ikatan sudah ada
+                const existingBond = bonds.find(b => 
+                    (b.from === fromIndex && b.to === toIndex) || 
+                    (b.from === toIndex && b.to === fromIndex)
+                );
+                
+                if (existingBond) {
+                    showMessage("Ikatan sudah ada antara atom ini.");
+                    return false;
+                }
+                
+                // Periksa aturan valensi untuk C dan H
+                const fromAtom = atoms[fromIndex];
+                const toAtom = atoms[toIndex];
+                
+                // Hitung jumlah ikatan yang sudah dimiliki oleh setiap atom
+                const fromBonds = bonds.filter(b => b.from === fromIndex || b.to === fromIndex).length;
+                const toBonds = bonds.filter(b => b.to === toIndex || b.from === toIndex).length;
+                
+                // Aturan valensi: C maksimal 4 ikatan, H maksimal 1 ikatan
+                if (fromAtom.type === 'C' && fromBonds >= 4) {
+                    showMessage("Atom Karbon tidak bisa memiliki lebih dari 4 ikatan!");
+                    return false;
+                }
+                if (fromAtom.type === 'H' && fromBonds >= 1) {
+                    showMessage("Atom Hidrogen tidak bisa memiliki lebih dari 1 ikatan!");
+                    return false;
+                }
+                if (toAtom.type === 'C' && toBonds >= 4) {
+                    showMessage("Atom Karbon tidak bisa memiliki lebih dari 4 ikatan!");
+                    return false;
+                }
+                if (toAtom.type === 'H' && toBonds >= 1) {
+                    showMessage("Atom Hidrogen tidak bisa memiliki lebih dari 1 ikatan!");
+                    return false;
+                }
+                
+                // Tambahkan ikatan
+                const bond = {
+                    from: fromIndex,
+                    to: toIndex
+                };
+                
+                bonds.push(bond);
+                redrawCanvas();
+                return true;
+            }
+            
+            // Fungsi untuk menggambar ulang canvas
+            function redrawCanvas() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Gambar ikatan
+                for (let i = 0; i < bonds.length; i++) {
+                    const bond = bonds[i];
+                    const fromAtom = atoms[bond.from];
+                    const toAtom = atoms[bond.to];
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(fromAtom.x, fromAtom.y);
+                    ctx.lineTo(toAtom.x, toAtom.y);
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                }
+                
+                // Gambar atom
+                for (let i = 0; i < atoms.length; i++) {
+                    const atom = atoms[i];
+                    
+                    // Lingkaran atom
+                    ctx.beginPath();
+                    ctx.arc(atom.x, atom.y, atom.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = atom.color;
+                    ctx.fill();
+                    
+                    // Border jika atom sedang dipilih
+                    if (selectedAtom === i) {
+                        ctx.strokeStyle = 'yellow';
+                        ctx.lineWidth = 3;
+                        ctx.stroke();
+                    }
+                    
+                    // Label atom
+                    ctx.fillStyle = atom.type === 'C' ? 'white' : 'black';
+                    ctx.font = 'bold 16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(atom.type, atom.x, atom.y);
+                }
+            }
+            
+            // Fungsi untuk memeriksa molekul yang dibuat
+            function checkMolecule() {
+                const currentLevelData = levels[currentLevel - 1];
+                
+                if (currentLevelData.validation(atoms, bonds)) {
+                    score += 100;
+                    scoreDisplay.textContent = 'Skor: ' + score;
+                    showMessage(`Benar! Kamu berhasil membuat molekul ${currentLevelData.name}!`, function() {
+                        nextLevelBtn.style.display = 'inline-block';
+                    });
+                } else {
+                    showMessage(`Belum tepat. Cobalah lagi untuk membuat molekul ${currentLevelData.name}.`);
+                }
+            }
+            
+            // Fungsi untuk mengatur ulang molekul
+            function resetMolecule() {
+                atoms = [];
+                bonds = [];
+                selectedAtom = null;
+                selectedElement = null;
+                redrawCanvas();
+            }
+            
+            // Event handler untuk klik pada canvas
+            canvas.addEventListener('click', function(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                // Mode tambah atom
+                if (selectedElement === 'C' || selectedElement === 'H') {
+                    addAtom(selectedElement, x, y);
+                    return;
+                }
+                
+                // Mode tambah ikatan atau pilih atom
+                // Cek apakah klik pada atom yang ada
+                for (let i = 0; i < atoms.length; i++) {
+                    const atom = atoms[i];
+                    const dist = Math.sqrt(Math.pow(x - atom.x, 2) + Math.pow(y - atom.y, 2));
+                    
+                    if (dist <= atom.radius) {
+                        // Jika mode ikatan dan sudah ada atom yang dipilih sebelumnya
+                        if (selectedElement === 'bond' && selectedAtom !== null && selectedAtom !== i) {
+                            addBond(selectedAtom, i);
+                            selectedAtom = null; // Reset pilihan setelah membuat ikatan
+                            return;
+                        }
+                        // Pilih atom ini
+                        selectedAtom = i;
+                        redrawCanvas();
+                        return;
+                    }
+                }
+                
+                // Jika klik di area kosong, hilangkan pilihan
+                selectedAtom = null;
+                redrawCanvas();
+            });
+            
+            // Event listener untuk tombol-tombol kontrol
+            carbonBtn.addEventListener('click', function() {
+                selectedElement = 'C';
+                selectedAtom = null;
+                document.querySelectorAll('.element').forEach(el => el.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+            
+            hydrogenBtn.addEventListener('click', function() {
+                selectedElement = 'H';
+                selectedAtom = null;
+                document.querySelectorAll('.element').forEach(el => el.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+            
+            bondBtn.addEventListener('click', function() {
+                selectedElement = 'bond';
+                document.querySelectorAll('.element').forEach(el => el.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+            
+            resetBtn.addEventListener('click', resetMolecule);
+            
+            checkBtn.addEventListener('click', checkMolecule);
+            
+            nextLevelBtn.addEventListener('click', function() {
+                currentLevel++;
+                loadLevel(currentLevel);
+            });
+            
+            startGameBtn.addEventListener('click', startGame);
+            
+            // Atur ulang ukuran canvas saat jendela berubah ukuran
+            window.addEventListener('resize', resizeCanvas);
+            
+            // Inisialisasi tampilan
+            resizeCanvas();
+        });
+    </script>
+</body>
+</html>
